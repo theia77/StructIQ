@@ -1,9 +1,9 @@
 'use client';
 
-import { BeamState, Node, SupportType, AnalysisResults } from '@/lib/types/structural';
+import { BeamState, AnalysisResults, Node, SupportType } from '@/lib/types/structural';
 import { MatrixSolver } from '@/lib/math/MatrixSolver';
+import PropertyInput from '@/components/forms/PropertyInput';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
@@ -44,38 +44,34 @@ export default function RightPanel({ beamState, setBeamState, setAnalysisResults
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold tracking-tight mb-4">Structural Parameters</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Define your nodes, elements, and load cases here.
-        </p>
+        <h2 className="text-xl font-bold tracking-tight mb-2">Structural Parameters</h2>
+        <p className="text-sm text-muted-foreground">Define nodes, span properties, and boundaries.</p>
       </div>
 
-      {/* Nodes Section */}
       <section className="p-4 border rounded-lg bg-background">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold">Nodes ({beamState.nodes.length})</h3>
           <Button size="sm" onClick={handleAddNode}>+ Add Node</Button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {beamState.nodes.map((node, index) => (
-            <div key={node.id} className="grid grid-cols-3 gap-2 items-end">
-              <div>
-                <Label className="text-xs">X Coord (m)</Label>
-                <Input
-                  type="number"
-                  value={node.x}
-                  onChange={(e) => {
-                    const newNodes = [...beamState.nodes];
-                    newNodes[index] = { ...newNodes[index], x: parseFloat(e.target.value) || 0 };
-                    setBeamState({ ...beamState, nodes: newNodes });
-                  }}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Support</Label>
+            <div key={node.id} className="grid grid-cols-2 gap-4 items-end p-3 border rounded-md bg-muted/10">
+              <PropertyInput
+                label={`Node ${index + 1} Position`}
+                unit="m"
+                value={node.x}
+                onChange={(val) => {
+                  const newNodes = [...beamState.nodes];
+                  newNodes[index] = { ...newNodes[index], x: val };
+                  setBeamState({ ...beamState, nodes: newNodes });
+                }}
+              />
+
+              <div className="flex flex-col space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Boundary</Label>
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={node.supportType}
                   onChange={(e) => {
                     const newNodes = [...beamState.nodes];
@@ -94,18 +90,9 @@ export default function RightPanel({ beamState, setBeamState, setAnalysisResults
         </div>
       </section>
 
-      {/* Elements Section */}
-      <section className="p-4 border rounded-lg bg-background">
-        <h3 className="font-semibold mb-2">Elements</h3>
-        <p className="text-xs text-muted-foreground">
-          Map elements between nodes and assign E, I values here.
-        </p>
-      </section>
-
-      {/* Action Area */}
       <div className="pt-4 border-t">
-        <Button className="w-full" variant="default" onClick={handleSolve}>
-          Run Analysis (Solve Matrix)
+        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSolve}>
+          Run Analysis
         </Button>
       </div>
     </div>

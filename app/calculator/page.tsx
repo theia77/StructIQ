@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { BeamState, AnalysisResults } from '@/lib/types/structural';
-import { saveProject } from '@/lib/supabase/api';
 import LeftPanel from '@/components/panels/LeftPanel';
 import RightPanel from '@/components/panels/RightPanel';
-import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
-export default function CalculatorPage() {
+function CalculatorWorkspace() {
+  const searchParams = useSearchParams();
+  const projectId    = searchParams.get('id');
+
   const [viewMode, setViewMode]               = useState<'2D' | '3D'>('2D');
-  const [isSaving, setIsSaving]               = useState(false);
+  const [isLoading, setIsLoading]             = useState(!!projectId);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null);
 
   const [beamState, setBeamState] = useState<BeamState>({
@@ -20,54 +23,72 @@ export default function CalculatorPage() {
     settings: { clockwisePositive: true },
   });
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const mockUserId   = '123e4567-e89b-12d3-a456-426614174000';
-      const projectTitle = `Project - ${new Date().toLocaleDateString()}`;
-      await saveProject(mockUserId, projectTitle, beamState);
-      toast.success('Project saved successfully to database!');
-    } catch {
-      toast.error('Failed to save project. Check console.');
-    } finally {
-      setIsSaving(false);
+  useEffect(() => {
+    async function loadProject() {
+      if (!projectId) return;
+      try {
+        const { data, error } = await supabase
+          .from('beam_projects')
+          .select('structural_data, title')
+          .eq('id', projectId)
+          .single();
+
+        if (error) throw error;
+
+        if (data?.structural_data) {
+          setBeamState(
+            typeof data.structural_data === 'string'
+              ? JSON.parse(data.structural_data)
+              : data.structural_data
+          );
+          toast.success(`Loaded: ${data.title}`);
+        }
+      } catch (err) {
+        toast.error('Failed to load project data.');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  };
+
+    loadProject();
+  }, [projectId]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading Workspace…
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-background text-foreground overflow-hidden">
-
-      {/* Top Navigation Bar */}
-      <header className="flex items-center justify-between px-4 py-2 bg-card border-b shrink-0">
-        <h1 className="font-bold text-lg">StructEngine Pro</h1>
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save Configuration'}
-        </Button>
-      </header>
-
-      {/* Split Pane */}
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* Left: Visualizers (extracted to LeftPanel) */}
-        <div className="w-2/3 h-full">
-          <LeftPanel
-            beamState={beamState}
-            results={analysisResults}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-          />
-        </div>
-
-        {/* Right: Inputs & Controls */}
-        <div className="w-1/3 h-full overflow-y-auto p-4 bg-card">
-          <RightPanel
-            beamState={beamState}
-            setBeamState={setBeamState}
-            setAnalysisResults={setAnalysisResults}
-          />
-        </div>
-
+    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
+      <div className="w-2/3 h-full">
+        <LeftPanel
+          beamState={beamState}
+          results={analysisResults}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+        />
+      </div>
+      <div className="w-1/3 h-full overflow-y-auto p-4 bg-card border-l border-border">
+        <RightPanel
+          beamState={beamState}
+          setBeamState={setBeamState}
+          setAnalysisResults={setAnalysisResults}
+        />
       </div>
     </div>
+  );
+}
+
+export default function CalculatorPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">Initializing…</div>
+    }>
+      <CalculatorWorkspace />
+    </Suspense>
   );
 }
