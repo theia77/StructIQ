@@ -6,7 +6,7 @@ export function assembleGlobalForceVector(state: BeamState): math.Matrix {
   const dofPerNode = 3; // u, v, theta
   const totalDof = state.nodes.length * dofPerNode;
 
-  let F = math.zeros([totalDof, 1]) as math.Matrix;
+  let F = math.zeros([totalDof, 1], 'dense') as math.Matrix;
 
   // 1. Add direct nodal loads
   state.loads.forEach(load => {

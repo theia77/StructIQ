@@ -34,7 +34,7 @@ export class MatrixSolver {
   // Assemble the Global Stiffness Matrix [K]
   public assembleGlobalMatrix(): math.Matrix {
     const totalDof = this.state.nodes.length * this.dofPerNode;
-    let K_global = math.zeros(totalDof, totalDof) as math.Matrix;
+    let K_global = math.zeros([totalDof, totalDof], 'dense') as math.Matrix;
 
     this.state.elements.forEach(el => {
       const startNode = this.state.nodes.find(n => n.id === el.startNodeId)!;
@@ -109,7 +109,7 @@ export class MatrixSolver {
     }
 
     // 4. Reconstruct full displacement vector (restricted DOFs stay 0)
-    const D_full = math.zeros([totalDof, 1]) as math.Matrix;
+    const D_full = math.zeros([totalDof, 1], 'dense') as math.Matrix;
     freeDofs.forEach((dof, i) => {
       D_full.set([dof, 0], D_free.get([i, 0]) as number);
     });
